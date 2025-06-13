@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PianoAni - 멀티플레이어 피아노</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* 멀티플레이어 패널 */
+        .multiplayer-panel {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1200px;
+            gap: 20px;
+        }
+
+        .player-list {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .player-list h2 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .player {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .player-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .player-name {
+            flex-grow: 1;
+        }
+
+        .player-status {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .chat-box {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            max-height: 300px;
+        }
+
+        .chat-box h2 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .message {
+            margin-bottom: 8px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .message-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .message-input button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        /* 피아노 컨테이너 - 반응형으로 수정 */
+        .piano-container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            background: #2c3e50;
+            border-radius: 10px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            margin-bottom: 20px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .piano {
+          position: relative;
+          width: 100%;
+          max-width: 1144px;
+          height: 200px;
+          background: #222;
+          user-select: none;
+          border: 1px solid #444;
+        }
+        
+        .keys-wrapper {
+          position: relative;
+          height: 100%;
+          width: 100%;
+        }
+        
+        .key {
+          position: absolute;
+          border: 1px solid #000;
+          box-sizing: border-box;
+          cursor: pointer;
+          user-select: none;
+          transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        
+        .white-key {
+          width: calc(100% / 52);
+          height: 100%;
+          background: white;
+          z-index: 1;
+          border-radius: 0 0 5px 5px;
+          box-shadow: inset 0 -3px 5px rgba(0,0,0,0.2);
+        }
+        
+        .black-key {
+          width: calc(100% / 52 * 0.6);
+          height: 62.5%;
+          background: black;
+          z-index: 2;
+          border-radius: 0 0 3px 3px;
+          box-shadow: 0 3px 5px rgba(0,0,0,0.5);
+        }
+        
+        .note-label {
+          position: absolute;
+          bottom: 10px;
+          width: 100%;
+          text-align: center;
+          font-size: 0.7rem;
+          color: #333;
+          font-weight: bold;
+          z-index: 3;
+        }
+
+        .black-key .note-label {
+          color: #ddd;
+          font-size: 0.6rem;
+          bottom: 6px;
+        }
+
+        /* 건반 활성화 시 애니메이션 효과 추가 */
+        .white-key.active {
+            transform: translateY(3px);
+            box-shadow: inset 0 -1px 2px rgba(0,0,0,0.3);
+        }
+
+        .black-key.active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* 플레이어별 색상 클래스 */
+        .player1.active {
+            background: linear-gradient(to bottom, #FF5252 0%, #D32F2F 100%) !important;
+            box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .player2.active {
+            background: linear-gradient(to bottom, #448AFF 0%, #303F9F 100%) !important;
+            box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .player3.active {
+            background: linear-gradient(to bottom, #4CAF50 0%, #2E7D32 100%) !important;
+            box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .player4.active {
+            background: linear-gradient(to bottom, #FFD600 0%, #F57F17 100%) !important;
+            box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .black-key.player1.active {
+            background: linear-gradient(to bottom, #FF5252 0%, #D32F2F 100%) !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        .black-key.player2.active {
+            background: linear-gradient(to bottom, #448AFF 0%, #303F9F 100%) !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        .black-key.player3.active {
+            background: linear-gradient(to bottom, #4CAF50 0%, #2E7D32 100%) !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        .black-key.player4.active {
+            background: linear-gradient(to bottom, #FFD600 0%, #F57F17 100%) !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        select {
+            padding: 10px 15px;
+            border-radius: 50px;
+            border: 2px solid #3498db;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            width: 250px;
+        }
+
+        .file-input {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            padding: 12px 25px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            display: inline-block;
+        }
+
+        .file-input-label:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .status {
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50px;
+            font-weight: bold;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .status.connected {
+            background: rgba(46, 204, 113, 0.3);
+        }
+
+        .status.loading {
+            background: rgba(243, 156, 18, 0.3);
+        }
+
+        .status.error {
+            background: rgba(231, 76, 60, 0.3);
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: #3498db;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 1200px;
+            line-height: 1.6;
+        }
+
+        .instructions h2 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .instructions ul {
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 10px;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-slider {
+            width: 150px;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            border: none;
+        }
+
+        .reverb-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reverb-slider {
+            width: 150px;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .reverb-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #9b59b6;
+            cursor: pointer;
+        }
+
+        .reverb-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #9b59b6;
+            cursor: pointer;
+            border: none;
+        }
+
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            opacity: 0.7;
+        }
+
+        .preset-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        /* 플레이어 등록 팝업 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .player-register {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .player-register h2 {
+            margin-bottom: 20px;
+        }
+        
+        .player-register input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+        }
+        
+        .player-colors {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .color-option.selected {
+            border-color: white;
+            transform: scale(1.1);
+        }
+        
+        #player1-color { background: #FF5252; }
+        #player2-color { background: #448AFF; }
+        #player3-color { background: #4CAF50; }
+        #player4-color { background: #FFD600; }
+
+        /* 반응형 미디어 쿼리 - 건반 크기 조정 */
+        @media (max-width: 1200px) {
+            .piano {
+                height: 180px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .piano-container {
+                padding: 15px;
+            }
+            
+            .piano {
+                height: 160px;
+            }
+            
+            .note-label {
+                font-size: 0.6rem;
+            }
+            
+            .black-key .note-label {
+                font-size: 0.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .multiplayer-panel {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .piano {
+                height: 140px;
+            }
+            
+            .note-label {
+                font-size: 0.5rem;
+                bottom: 5px;
+            }
+            
+            .black-key .note-label {
+                font-size: 0.4rem;
+                bottom: 3px;
+            }
+        }
+        
+        /* 웹소켓 상태 표시기 */
+        .websocket-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e74c3c;
+        }
+        
+        .status-indicator.connected {
+            background: #2ecc71;
+        }
+        
+        .status-indicator.connecting {
+            background: #f39c12;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* 온라인 플레이어 수 표시 */
+        .online-players {
+            position: fixed;
+            top: 40px;
+            right: 10px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+    <!-- WebAudioFontPlayer.js 및 사전 변환된 SoundFont 파일 -->
+	<script src="http://59.16.101.50/WebAudioFontPlayer.js"></script>
+    <script src="http://59.16.101.50/0000_FluidR3_GM_sf2_file.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PianoAni 피아노</h1>
+            <p class="subtitle">피아노 시스템은 피아노애니가 직접 코딩으로 개발했습니다</p>
+        </header>
+        
+        <div class="multiplayer-panel">
+            <div class="player-list">
+                <h2>참여자</h2>
+                <div id="playersContainer">
+                    <!-- 플레이어 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+            
+            <div class="chat-box">
+                <h2>채팅</h2>
+                <div class="messages" id="chatMessages">
+                    <!-- 채팅 메시지가 여기에 표시됩니다 -->
+                </div>
+                <div class="message-input">
+                    <input type="text" id="messageInput" placeholder="메시지를 입력하세요...">
+                    <button id="sendMessageBtn">전송</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="piano-container">
+            <div class="piano" id="piano"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button id="connectBtn">MIDI 장치 연결</button>
+                <div class="status" id="status">MIDI 장치가 연결되지 않았습니다</div>
+            </div>
+            
+            <div class="control-group">
+                <button id="loadSoundfontBtn">SoundFont 로드</button>
+                <div class="status" id="soundfontStatus">SoundFont가 로드되지 않았습니다</div>
+                <div class="loading-bar" id="loadingBar" style="display: none;">
+                    <div class="loading-progress" id="loadingProgress"></div>
+                </div>
+                <div class="preset-info" id="presetInfo">
+                    <div>악기 이름: <span id="presetName">-</span></div>
+                    <div>저작권: <span id="presetCopyright">-</span></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <select id="instrumentSelect">
+                    <option value="0">Acoustic Grand Piano</option>
+                    <option value="1">Bright Acoustic Piano</option>
+                    <option value="2">Electric Grand Piano</option>
+                    <option value="3">Honky-tonk Piano</option>
+                    <option value="4">Electric Piano 1</option>
+                    <option value="5">Electric Piano 2</option>
+                    <option value="6">Harpsichord</option>
+                    <option value="7">Clavinet</option>
+                    <option value="8">Celesta</option>
+                    <option value="9">Glockenspiel</option>
+                    <option value="10">Music Box</option>
+                    <option value="11">Vibraphone</option>
+                    <option value="12">Marimba</option>
+                    <option value="13">Xylophone</option>
+                    <option value="14">Tubular Bells</option>
+                    <option value="15">Dulcimer</option>
+                    <option value="24">Acoustic Guitar (nylon)</option>
+                    <option value="25">Acoustic Guitar (steel)</option>
+                    <option value="26">Electric Guitar (jazz)</option>
+                    <option value="27">Electric Guitar (clean)</option>
+                    <option value="40">Violin</option>
+                    <option value="41">Viola</option>
+                    <option value="42">Cello</option>
+                    <option value="48">String Ensemble 1</option>
+                    <option value="56">Trumpet</option>
+                    <option value="57">Trombone</option>
+                    <option value="64">Soprano Sax</option>
+                    <option value="65">Alto Sax</option>
+                    <option value="66">Tenor Sax</option>
+                    <option value="67">Baritone Sax</option>
+                    <option value="73">Flute</option>
+                </select>
+                <div>악기 선택</div>
+            </div>
+            
+            <div class="control-group">
+                <div class="volume-control">
+                    <span>🔊</span>
+                    <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="80">
+                    <span id="volumeValue">80%</span>
+                </div>
+                <div>볼륨 조절</div>
+            </div>
+            
+            <div class="control-group">
+                <div class="reverb-control">
+                    <span>🏛️</span>
+                    <input type="range" id="reverbSlider" class="reverb-slider" min="0" max="100" value="30">
+                    <span id="reverbValue">30%</span>
+                </div>
+                <div>리버브 효과</div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>멀티플레이어 피아노 사용 방법</h2>
+            <ul>
+                <li><strong>플레이어 등록</strong>: 페이지에 접속하면 플레이어 이름과 색상을 선택하세요</li>
+                <li><strong>동시 연주</strong>: 여러 명이 동시에 피아노를 연주할 수 있습니다</li>
+                <li><strong>시각적 구분</strong>: 각 플레이어의 건반은 다른 색상으로 표시됩니다</li>
+                <li><strong>채팅 기능</strong>: 다른 플레이어와 실시간으로 대화할 수 있습니다</li>
+                <li><strong>소리 조절</strong>: 개별 볼륨과 리버브 효과를 조절할 수 있습니다</li>
+                <li><strong>웹소켓</strong>: 실시간으로 다른 플레이어들의 연주를 볼 수 있습니다</li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p>멀티플레이어 피아노 | HTML, CSS, JavaScript + WebAudioFontPlayer + WebSocket</p>
+        </footer>
+    </div>
+
+    <!-- 웹소켓 상태 표시 -->
+    <div class="websocket-status" id="websocketStatus">
+        <div class="status-indicator" id="statusIndicator"></div>
+        <span id="statusText">연결 중...</span>
+    </div>
+    
+    <div class="online-players" id="onlinePlayers">
+        <span>👥</span>
+        <span id="playerCount">0</span>명 온라인
+    </div>
+
+    <!-- 플레이어 등록 팝업 -->
+    <div class="overlay" id="registerOverlay">
+        <div class="player-register">
+            <h2>플레이어 등록</h2>
+            <input type="text" id="playerName" placeholder="플레이어 이름을 입력하세요">
+            <div class="player-colors">
+                <div class="color-option selected" id="player1-color" data-color="1"></div>
+                <div class="color-option" id="player2-color" data-color="2"></div>
+                <div class="color-option" id="player3-color" data-color="3"></div>
+                <div class="color-option" id="player4-color" data-color="4"></div>
+            </div>
+            <button id="registerBtn">연주 시작하기</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 웹소켓 서버 주소 (공개 테스트 서버 사용)
+            const WS_SERVER_URL = 'ws://59.16.101.50:3000/';
+            
+            // 웹소켓 상태 표시
+            const websocketStatus = document.getElementById('websocketStatus');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const playerCount = document.getElementById('playerCount');
+            
+            // 플레이어 등록
+            const registerOverlay = document.getElementById('registerOverlay');
+            const playerNameInput = document.getElementById('playerName');
+            const colorOptions = document.querySelectorAll('.color-option');
+            const registerBtn = document.getElementById('registerBtn');
+            
+            let currentPlayer = {
+                id: null,
+                name: '',
+                color: 1, // 기본 색상 (플레이어1)
+                active: true
+            };
+            
+            // 웹소켓 연결
+            let socket;
+            let players = {};
+            let playerColors = {};
+            let playerCountValue = 0;
+            // 플레이어 활동 감시
+            let playerActivityTimer = null;
+            
+            function startPlayerActivityMonitoring() {
+                if (playerActivityTimer) clearInterval(playerActivityTimer);
+                
+                playerActivityTimer = setInterval(() => {
+                    // 플레이어 활동 알림 (서버에 마지막 활동 시간 업데이트)
+                    if (socket && socket.readyState === WebSocket.OPEN && currentPlayer.id) {
+                        socket.send(JSON.stringify({
+                            type: 'playerActive',
+                            playerId: currentPlayer.id
+                        }));
+                    }
+                    
+                    // 플레이어 목록 업데이트 요청 (3초마다)
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'playerListRequest'
+                        }));
+                    }
+                }, 3000); // 3초마다 실행
+            }
+			
+			
+			
+            function connectWebSocket() {
+                statusIndicator.className = 'status-indicator connecting';
+                statusText.textContent = '연결 중...';
+                
+                socket = new WebSocket(WS_SERVER_URL);
+                
+                socket.addEventListener('open', () => {
+                    console.log('웹소켓 연결 성공');
+                    statusIndicator.className = 'status-indicator connected';
+                    statusText.textContent = '실시간 연결됨';
+                    
+                    // 플레이어 등록 팝업 표시
+                    registerOverlay.style.display = 'flex';
+                    
+                    // 플레이어 수 요청
+                    socket.send(JSON.stringify({
+                        type: 'playerCount'
+                    }));
+                });
+                
+                socket.addEventListener('message', (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        
+                        switch (message.type) {
+                            case 'playerList':
+                                // 플레이어 목록과 색상 정보 업데이트
+                                players = message.players.reduce((acc, player) => {
+                                    acc[player.id] = player;
+                                    return acc;
+                                }, {});
+                                
+                                // 플레이어 색상 정보 저장
+                                if (message.playerColors) {
+                                    playerColors = message.playerColors;
+                                }
+                                
+                                updatePlayerList(message.players);
+                                break;
+                            case 'noteOn':
+                                activateKeyVisual(message.note, message.playerId);
+                                break;
+                            case 'noteOff':
+                                deactivateKeyVisual(message.note, message.playerId);
+                                break;
+                            case 'chat':
+                                addMessage(message.playerName, message.message);
+                                break;
+                            case 'playerCount':
+                                playerCountValue = message.count;
+                                playerCount.textContent = playerCountValue;
+                                break;
+                            case 'keyActive':  // 새 메시지 타입 처리
+                                handleKeyActive(message.note, message.playerId);
+                                break;
+                            case 'keyInactive':  // 새 메시지 타입 처리
+                                handleKeyInactive(message.note, message.playerId);
+                                break;
+                        }
+                    } catch (e) {
+                        console.log('메시지 수신:', event.data);
+                    }
+                });
+                
+                // 기존 코드에 추가할 부분 (close 이벤트 핸들러 내부)
+                socket.addEventListener('close', () => {
+                    console.log('웹소켓 연결 종료');
+                    statusIndicator.className = 'status-indicator';
+                    statusText.textContent = '연결 끊김';
+                    
+                    // 연결 상태 UI 업데이트
+                    document.querySelectorAll('.player-status').forEach(el => {
+                        el.textContent = '연결 끊김';
+                    });
+                    
+                    // 3초 후 재연결 시도 (기존 5초에서 단축)
+                    setTimeout(connectWebSocket, 3000);
+                });
+                
+                socket.addEventListener('error', (error) => {
+                    console.error('웹소켓 오류:', error);
+                    statusIndicator.className = 'status-indicator';
+                    statusText.textContent = '연결 오류';
+                });
+            }
+            
+			// 키 활성화 처리 함수
+            function handleKeyActive(note, playerId) {
+                const key = document.querySelector(`.key[data-midi="${note}"]`);
+                if (key) {
+                    key.classList.remove('player1', 'player2', 'player3', 'player4', 'active');
+                    key.classList.add(`player${playerColors[playerId]}`, 'active');
+                }
+            }
+            
+            // 키 비활성화 처리 함수
+            function handleKeyInactive(note, playerId) {
+                const key = document.querySelector(`.key[data-midi="${note}"]`);
+                if (key && key.classList.contains(`player${playerColors[playerId]}`)) {
+                    key.classList.remove('active');
+                }
+            }
+			
+			
+            // 플레이어 목록 업데이트 함수 수정
+            function updatePlayerList(playersList) {
+                const playersContainer = document.getElementById('playersContainer');
+                playersContainer.innerHTML = '';
+                
+                playersList.forEach(player => {
+                    const playerElement = document.createElement('div');
+                    playerElement.className = 'player';
+                    playerElement.innerHTML = `
+                        <div class="player-color" style="background: ${getPlayerColor(player.color)}"></div>
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-status">${player.connectionClosed ? '연결 끊김' : '접속 중'}</div>
+                    `;
+                    playersContainer.appendChild(playerElement);
+                });
+            }
+            
+            // 키 시각적 활성화
+            // 키 시각적 활성화 함수 수정
+            function activateKeyVisual(note, playerId) {
+                const key = document.querySelector(`.key[data-midi="${note}"]`);
+                if (key) {
+                    key.classList.remove('player1', 'player2', 'player3', 'player4', 'active');
+                    key.classList.add(`player${playerColors[playerId]}`, 'active');
+                    
+                    // 플레이어 색상 적용
+                    if (playerColors[playerId]) {
+                        key.classList.add(`player${playerColors[playerId]}`, 'active');
+                    } else {
+                        // 기본 색상 (빨강) 적용
+                        key.classList.add('player1', 'active');
+                    }
+                    
+                    // 300ms 후에 비활성화 (시각적 효과)
+                    setTimeout(() => {
+                        key.classList.remove('active');
+                    }, 300);
+                }
+            }
+            
+            // 키 시각적 비활성화 함수 수정
+            function deactivateKeyVisual(note, playerId) {
+                const key = document.querySelector(`.key[data-midi="${note}"]`);
+                if (key && key.classList.contains(`player${playerColors[playerId]}`)) {
+                    key.classList.remove('active');
+                    
+                    // 웹소켓으로 키 비활성화 정보 전송
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'keyInactive',
+                            note: note,
+                            playerId: playerId
+                        }));
+                    }
+                }
+            }
+            
+            // 플레이어 등록 팝업 표시
+            registerOverlay.style.display = 'flex';
+            
+            // 색상 선택 이벤트
+            colorOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    colorOptions.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                    currentPlayer.color = parseInt(option.dataset.color);
+                });
+            });
+            
+            // 플레이어 등록 시 수정
+            registerBtn.addEventListener('click', () => {
+                const name = playerNameInput.value.trim();
+                if (name.length < 2) {
+                    alert('이름은 2글자 이상 입력해주세요');
+                    return;
+                }
+                
+				
+                currentPlayer.name = name;
+                currentPlayer.id = Date.now().toString(); // 고유 ID 생성
+                
+                // 선택한 색상 찾기 (변경된 부분)
+                const selectedColor = document.querySelector('.color-option.selected');
+                if (selectedColor) {
+                    currentPlayer.color = parseInt(selectedColor.dataset.color);
+                } else {
+                    currentPlayer.color = 1; // 기본값 설정
+                }
+                
+                registerOverlay.style.display = 'none';
+                
+                // 플레이어 목록에 추가
+                addPlayer(currentPlayer);
+                
+                // 웹소켓으로 플레이어 등록 알림
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'register',
+                        player: currentPlayer
+                    }));
+                }
+                startPlayerActivityMonitoring();
+                initializePiano();
+            });
+            
+            // 플레이어 목록 관리
+            function addPlayer(player) {
+                players[player.id] = player;
+                playerColors[player.id] = player.color;
+                updatePlayersList();
+            }
+            
+            function updatePlayersList() {
+                const playersContainer = document.getElementById('playersContainer');
+                playersContainer.innerHTML = '';
+                
+                Object.values(players).forEach(player => {
+                    const playerElement = document.createElement('div');
+                    playerElement.className = 'player';
+                    playerElement.innerHTML = `
+                        <div class="player-color" style="background: ${getPlayerColor(player.color)}"></div>
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-status">${player.active ? '연주 중' : '대기 중'}</div>
+                    `;
+                    playersContainer.appendChild(playerElement);
+                });
+            }
+            
+            function getPlayerColor(colorId) {
+                switch(colorId) {
+                    case 1: return '#FF5252';
+                    case 2: return '#448AFF';
+                    case 3: return '#4CAF50';
+                    case 4: return '#FFD600';
+                    default: return '#FFFFFF';
+                }
+            }
+            
+            // 채팅 기능
+            const chatMessages = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            
+            function addMessage(playerName, message) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message';
+                messageElement.innerHTML = `<strong>${playerName}:</strong> ${message}`;
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            sendMessageBtn.addEventListener('click', () => {
+                const message = messageInput.value.trim();
+                if (message) {
+                    // 로컬에 메시지 추가
+                    addMessage(currentPlayer.name, message);
+                    
+                    // 웹소켓으로 메시지 전송
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'chat',
+                            playerId: currentPlayer.id,
+                            playerName: currentPlayer.name,
+                            message: message
+                        }));
+                    }
+                    
+                    messageInput.value = '';
+                }
+            });
+            
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessageBtn.click();
+                }
+            });
+            
+            // 피아노 초기화 및 기능
+            function initializePiano() {
+                // 전역 변수들
+                const piano = document.getElementById('piano');
+                const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                const keyboardMap = {
+                    'A': 60, 'W': 61, 'S': 62, 'E': 63, 'D': 64, 
+                    'F': 65, 'T': 66, 'G': 67, 'Y': 68, 'H': 69,
+                    'U': 70, 'J': 71, 'K': 72, 'O': 73, 'L': 74, 'P': 75, ';': 76
+                };
+                
+                // 오디오 컨텍스트 생성
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const audioContext = new AudioCtx();
+                
+                // WebAudioFontPlayer 인스턴스 생성
+                const player = new WebAudioFontPlayer();
+                let soundfontLoaded = false;
+                let currentInstrument = 0;
+                let masterVolume = 0.8;
+                let reverbAmount = 0.3;
+                let activeSounds = {};
+                let loadedPreset = null;
+                
+                // 리버브 노드 생성
+                const reverbNode = audioContext.createConvolver();
+                const reverbGain = audioContext.createGain();
+                reverbGain.connect(audioContext.destination);
+                reverbGain.gain.value = reverbAmount;
+                
+                // DOM 요소들
+                const connectBtn = document.getElementById('connectBtn');
+                const statusDiv = document.getElementById('status');
+                const loadSoundfontBtn = document.getElementById('loadSoundfontBtn');
+                const soundfontStatus = document.getElementById('soundfontStatus');
+                const loadingBar = document.getElementById('loadingBar');
+                const loadingProgress = document.getElementById('loadingProgress');
+                const instrumentSelect = document.getElementById('instrumentSelect');
+                const volumeSlider = document.getElementById('volumeSlider');
+                const volumeValue = document.getElementById('volumeValue');
+                const reverbSlider = document.getElementById('reverbSlider');
+                const reverbValue = document.getElementById('reverbValue');
+                const presetName = document.getElementById('presetName');
+                const presetCopyright = document.getElementById('presetCopyright');
+
+                // 음이름을 MIDI 노트 번호로 변환하는 함수
+                function noteNameToMidi(noteName) {
+                    const note = noteName.substring(0, noteName.length-1);
+                    const octave = parseInt(noteName.substring(noteName.length-1));
+                    
+                    const noteOffsets = {
+                        'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 
+                        'F': 5, 'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11
+                    };
+                    
+                    if (noteOffsets[note] === undefined) {
+                        return null;
+                    }
+                    
+                    return (octave * 12) + noteOffsets[note] + 12;
+                }
+                
+                function create88Keys() {
+                  piano.innerHTML = '';
+                
+                  const keysWrapper = document.createElement('div');
+                  keysWrapper.className = 'keys-wrapper';
+                  piano.appendChild(keysWrapper);
+                
+                  const whiteKeyWidth = 22;
+                
+                  // 88키 피아노: A0부터 C8까지
+                  const allKeys = [];
+                  
+                  // A0, A#0, B0 (0옥타브 마지막 3개)
+                  allKeys.push({note: 'A0', midi: 21, isBlack: false});
+                  allKeys.push({note: 'A#0', midi: 22, isBlack: true});
+                  allKeys.push({note: 'B0', midi: 23, isBlack: false});
+                  
+                  // 1옥타브부터 7옥타브까지 (C1~B7)
+                  for (let octave = 1; octave <= 7; octave++) {
+                    const notes = [
+                      {note: `C${octave}`, isBlack: false},
+                      {note: `C#${octave}`, isBlack: true},
+                      {note: `D${octave}`, isBlack: false},
+                      {note: `D#${octave}`, isBlack: true},
+                      {note: `E${octave}`, isBlack: false},
+                      {note: `F${octave}`, isBlack: false},
+                      {note: `F#${octave}`, isBlack: true},
+                      {note: `G${octave}`, isBlack: false},
+                      {note: `G#${octave}`, isBlack: true},
+                      {note: `A${octave}`, isBlack: false},
+                      {note: `A#${octave}`, isBlack: true},
+                      {note: `B${octave}`, isBlack: false}
+                    ];
+                    
+                    notes.forEach(n => {
+                      allKeys.push({
+                        note: n.note,
+                        midi: noteNameToMidi(n.note),
+                        isBlack: n.isBlack
+                      });
+                    });
+                  }
+                  
+                  // C8 (마지막 키)
+                  allKeys.push({note: 'C8', midi: 108, isBlack: false});
+                
+                  // 흰 건반부터 생성
+                  let whiteKeyIndex = 0;
+                  allKeys.forEach(key => {
+                    if (!key.isBlack) {
+                      const whiteKey = document.createElement('div');
+                      whiteKey.className = 'key white-key';
+                      whiteKey.style.left = (whiteKeyIndex * whiteKeyWidth) + 'px';
+                      whiteKey.dataset.note = key.note;
+                      whiteKey.dataset.midi = key.midi;
+                      whiteKey.dataset.whiteIndex = whiteKeyIndex; // 검은 건반 위치 계산용
+                
+                      const label = document.createElement('div');
+                      label.className = 'note-label';
+                      label.textContent = key.note;
+                      whiteKey.appendChild(label);
+                
+                      keysWrapper.appendChild(whiteKey);
+                      whiteKeyIndex++;
+                    }
+                  });
+                
+                  // 검은 건반 생성
+                  whiteKeyIndex = 0;
+                  allKeys.forEach((key, index) => {
+                    if (key.isBlack) {
+                      const blackKey = document.createElement('div');
+                      blackKey.className = 'key black-key';
+                      
+                      // 검은 건반 위치 계산: 이전 흰 건반들의 개수를 세어서 위치 결정
+                      let whiteKeysBeforeThis = 0;
+                      for (let i = 0; i < index; i++) {
+                        if (!allKeys[i].isBlack) {
+                          whiteKeysBeforeThis++;
+                        }
+                      }
+                      
+                      const leftPos = (whiteKeysBeforeThis * whiteKeyWidth) - (whiteKeyWidth * 0.3);
+                      blackKey.style.left = leftPos + 'px';
+                      blackKey.dataset.note = key.note;
+                      blackKey.dataset.midi = key.midi;
+                
+                      const label = document.createElement('div');
+                      label.className = 'note-label';
+                      label.textContent = key.note;
+                      blackKey.appendChild(label);
+                
+                      keysWrapper.appendChild(blackKey);
+                    }
+                  });
+                }
+                
+                
+                create88Keys();
+                
+                // SoundFont 로드 함수
+                function loadSoundFont() {
+                    try {
+                        loadingBar.style.display = 'block';
+                        soundfontStatus.textContent = 'SoundFont 로딩 중...';
+                        soundfontStatus.classList.add('loading');
+                        soundfontStatus.classList.remove('error', 'connected');
+                        
+                        // 사전 변환된 SoundFont 파일 사용
+                        if (typeof _tone_0000_FluidR3_GM_sf2_file !== 'undefined') {
+                            // 악기 정보 표시
+                            presetName.textContent = _tone_0000_FluidR3_GM_sf2_file.title || 'FluidR3';
+                            presetCopyright.textContent = _tone_0000_FluidR3_GM_sf2_file.copyright || 'FluidR3';
+                            
+                            // 악기 로드
+                            player.loader.decodeAfterLoading(audioContext, _tone_0000_FluidR3_GM_sf2_file);
+                            
+                            soundfontLoaded = true;
+                            loadedPreset = _tone_0000_FluidR3_GM_sf2_file;
+                            
+                            soundfontStatus.textContent = `SoundFont 로드 완료: 0000_FluidR3_GM_sf2_file`;
+                            soundfontStatus.classList.remove('loading');
+                            soundfontStatus.classList.add('connected');
+                            
+                            console.log('SoundFont 로드 성공');
+                        } else {
+                            throw new Error('사전 변환된 SoundFont 파일을 찾을 수 없습니다');
+                        }
+                    } catch (error) {
+                        console.error('SoundFont 로드 실패:', error);
+                        soundfontStatus.textContent = `SoundFont 로드 실패: ${error.message}`;
+                        soundfontStatus.classList.remove('loading');
+                        soundfontStatus.classList.add('error');
+                        
+                        // 폴백 메시지 추가
+                        soundfontStatus.innerHTML += '<br>기본 오디오 엔진으로 전환됩니다';
+                        
+                        soundfontLoaded = false;
+                        loadedPreset = null;
+                    } finally {
+                        loadingBar.style.display = 'none';
+                    }
+                }
+                
+                // 자연스러운 연주를 위한 엔벨로프 생성 함수
+                function createNaturalEnvelope(gainNode, velocity, isPiano = true) {
+                    const now = audioContext.currentTime;
+                    const normalizedVelocity = velocity / 127;
+                    
+                    // 피아노: 빠른 어택, 감소하는 디케이, 긴 릴리스
+                    if (isPiano) {
+                        // 어택: 0.01초, 디케이: 0.2초, 서스테인: 0.7, 릴리스: 1.5초
+                        gainNode.gain.setValueAtTime(0, now);
+                        gainNode.gain.linearRampToValueAtTime(normalizedVelocity * 0.9, now + 0.01);
+                        gainNode.gain.exponentialRampToValueAtTime(normalizedVelocity * 0.7, now + 0.21);
+                    } 
+                    // 현악기: 느린 어택, 지속적인 서스테인
+                    else {
+                        // 어택: 0.1초, 디케이: 0.3초, 서스테인: 0.8, 릴리스: 2초
+                        gainNode.gain.setValueAtTime(0, now);
+                        gainNode.gain.linearRampToValueAtTime(normalizedVelocity * 0.8, now + 0.1);
+                        gainNode.gain.exponentialRampToValueAtTime(normalizedVelocity * 0.6, now + 0.4);
+                    }
+                    
+                    return {
+                        startRelease: function() {
+                            const releaseStart = audioContext.currentTime;
+                            gainNode.gain.cancelScheduledValues(releaseStart);
+                            gainNode.gain.setValueAtTime(gainNode.gain.value, releaseStart);
+                            
+                            // 릴리스 시간: 피아노 0.8초, 현악기 1.5초
+                            const releaseTime = isPiano ? 0.8 : 1.5;
+                            gainNode.gain.exponentialRampToValueAtTime(0.001, releaseStart + releaseTime);
+                            
+                            // 완전히 중지
+                            setTimeout(() => {
+                                if (gainNode) {
+                                    try {
+                                        gainNode.disconnect();
+                                    } catch(e) {}
+                                }
+                            }, releaseTime * 1000 + 100);
+                        }
+                    };
+                }
+                
+                // 노트 재생 함수 수정 (웹소켓 전송 추가)
+                function playNote(midiNote, velocity = 80) {
+                    // 키 시각적 활성화
+                    const key = document.querySelector(`.key[data-midi="${midiNote}"]`);
+                    if (key) {
+                        key.classList.add(`player${currentPlayer.color}`, 'active');
+                    }
+                    
+                    // 웹소켓으로 연주 정보 전송
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'noteOn',
+                            note: midiNote,
+                            playerId: currentPlayer.id
+                        }));
+                    }
+                    
+                    // 이미 재생 중인 노트 중지
+                    if (activeSounds[midiNote]) {
+                        stopNote(midiNote);
+                    }
+                    
+                    try {
+                        if (soundfontLoaded && loadedPreset) {
+                            // WebAudioFontPlayer를 사용하여 노트 재생
+                            const adjustedVolume = velocity / 127 * masterVolume;
+                            
+                            // MIDI 프로그램 번호로 악기 선택 (WebAudioFontPlayer 방식)
+                            // 선택된 악기를 MIDI 채널 0에 설정
+                            player.loader.instrumentKeys().forEach(key => {
+                                if (window[key] && window[key].zones) {
+                                    // 각 악기의 첫 번째 프로그램 번호 확인
+                                    const programNumber = window[key].zones[0] ? window[key].zones[0].keyRangeLow : 0;
+                                    if (Math.floor(programNumber / 128) === currentInstrument || key.includes(`_${currentInstrument}_`)) {
+                                        loadedPreset = window[key];
+                                        return;
+                                    }
+                                }
+                            });
+                            
+                            // 기본 SoundFont 사용 (GeneralUserGS)
+                            let selectedPreset = _tone_0000_FluidR3_GM_sf2_file;
+                            
+                            // WebAudioFontPlayer의 queueWaveTable 사용 - 프로그램 번호로 악기 선택
+                            const envelope = player.queueWaveTable(audioContext, audioContext.destination, selectedPreset, 0, midiNote, 86400, adjustedVolume, currentInstrument);
+                            
+                            activeSounds[midiNote] = {
+                                envelope: envelope,
+                                stop: function() {
+                                    if (this.envelope && this.envelope.cancel) {
+                                        this.envelope.cancel();
+                                    }
+                                    // 자연스러운 릴리스 효과
+                                    const releaseTime = 0.8;
+                                    const now = audioContext.currentTime;
+                                    if (this.envelope && this.envelope.gain) {
+                                        this.envelope.gain.cancelScheduledValues(now);
+                                        this.envelope.gain.setValueAtTime(this.envelope.gain.value, now);
+                                        this.envelope.gain.exponentialRampToValueAtTime(0.001, now + releaseTime);
+                                    }
+                                }
+                            };
+                        } else {
+                            // 폴백 사운드 사용
+                            const oscillator = audioContext.createOscillator();
+                            const gainNode = audioContext.createGain();
+                            
+                            // 주파수 계산
+                            const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+                            oscillator.frequency.value = frequency;
+                            
+                            // 악기별 파형 변경
+                            const waveTypes = ['sine', 'square', 'sawtooth', 'triangle'];
+                            const waveIndex = currentInstrument % waveTypes.length;
+                            oscillator.type = waveTypes[waveIndex];
+                            
+                            // 엔벨로프 생성
+                            const envelope = createNaturalEnvelope(gainNode, velocity, true);
+                            
+                            // 연결
+                            oscillator.connect(gainNode);
+                            gainNode.connect(reverbNode);
+                            reverbNode.connect(reverbGain);
+                            
+                            oscillator.start();
+                            
+                            activeSounds[midiNote] = {
+                                source: oscillator,
+                                gain: gainNode,
+                                envelope: envelope,
+                                stop: function() {
+                                    this.envelope.startRelease();
+                                    setTimeout(() => {
+                                        try {
+                                            this.source.stop();
+                                            this.source.disconnect();
+                                            this.gain.disconnect();
+                                        } catch(e) {}
+                                    }, 100);
+                                }
+                            };
+                        }
+                    } catch (error) {
+                        console.error('노트 재생 오류:', error);
+                        // 오류 발생시 폴백 사운드 사용
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+                        oscillator.frequency.value = frequency;
+                        
+                        // 악기별 파형 변경
+                        const waveTypes = ['sine', 'square', 'sawtooth', 'triangle'];
+                        const waveIndex = currentInstrument % waveTypes.length;
+                        oscillator.type = waveTypes[waveIndex];
+                        
+                        const envelope = createNaturalEnvelope(gainNode, velocity, true);
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.start();
+                        
+                        activeSounds[midiNote] = {
+                            source: oscillator,
+                            gain: gainNode,
+                            envelope: envelope,
+                            stop: function() {
+                                this.envelope.startRelease();
+                                setTimeout(() => {
+                                    try {
+                                        this.source.stop();
+                                        this.source.disconnect();
+                                        this.gain.disconnect();
+                                    } catch(e) {}
+                                }, 100);
+                            }
+                        };
+                    }
+                }
+                
+                // 노트 중지 함수 수정 (웹소켓 전송 추가)
+                function stopNote(midiNote) {
+                    // 키 시각적 비활성화
+                    const key = document.querySelector(`.key[data-midi="${midiNote}"]`);
+                    if (key) {
+                        key.classList.remove('player1', 'player2', 'player3', 'player4', 'active');
+                    }
+                    
+                    // 웹소켓으로 노트 종료 정보 전송
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'noteOff',
+                            note: midiNote,
+                            playerId: currentPlayer.id
+                        }));
+                    }
+                    
+                    // 사운드 중지 (릴리스 효과 적용)
+                    if (activeSounds[midiNote]) {
+                        activeSounds[midiNote].stop();
+                        delete activeSounds[midiNote];
+                    }
+                }
+                
+                // MIDI 장치 연결
+                async function connectMidi() {
+                    if (!navigator.requestMIDIAccess) {
+                        statusDiv.textContent = "이 브라우저는 Web MIDI API를 지원하지 않습니다";
+                        return;
+                    }
+                    
+                    try {
+                        const midiAccess = await navigator.requestMIDIAccess();
+                        const inputs = midiAccess.inputs.values();
+                        
+                        if (midiAccess.inputs.size === 0) {
+                            statusDiv.textContent = "연결된 MIDI 장치가 없습니다";
+                            return;
+                        }
+                        
+                        for (const input of inputs) {
+                            input.onmidimessage = handleMidiMessage;
+                        }
+                        
+                        statusDiv.textContent = `${midiAccess.inputs.size}개 MIDI 장치 연결됨`;
+                        statusDiv.classList.add('connected');
+                        
+                        midiAccess.onstatechange = (e) => {
+                            if (e.port.state === 'disconnected') {
+                                statusDiv.textContent = "MIDI 장치 연결이 해제되었습니다";
+                                statusDiv.classList.remove('connected', 'error');
+                            }
+                        };
+                    } catch (error) {
+                        statusDiv.textContent = "MIDI 장치 연결에 실패했습니다: " + error.message;
+                    }
+                }
+                
+                // MIDI 메시지 처리
+                function handleMidiMessage(event) {
+                    const [command, note, velocity] = event.data;
+                    
+                    if (command === 144 && velocity > 0) {
+                        // Note On
+                        playNote(note, velocity);
+                    } else if (command === 128 || (command === 144 && velocity === 0)) {
+                        // Note Off
+                        stopNote(note);
+                    }
+                }
+                
+                // 이벤트 리스너들
+                connectBtn.addEventListener('click', connectMidi);
+                loadSoundfontBtn.addEventListener('click', loadSoundFont);
+                
+                // 악기 변경
+                instrumentSelect.addEventListener('change', (e) => {
+                    currentInstrument = parseInt(e.target.value);
+                    console.log(`악기 변경: ${currentInstrument}`);
+                });
+                
+                // 볼륨 조절
+                volumeSlider.addEventListener('input', (e) => {
+                    masterVolume = e.target.value / 100;
+                    volumeValue.textContent = e.target.value + '%';
+                });
+                
+                // 리버브 조절
+                reverbSlider.addEventListener('input', (e) => {
+                    reverbAmount = e.target.value / 100;
+                    reverbValue.textContent = e.target.value + '%';
+                    reverbGain.gain.value = reverbAmount;
+                });
+                
+                // 키보드 이벤트
+                document.addEventListener('keydown', (e) => {
+                    if (keyboardMap[e.key.toUpperCase()] && !e.repeat) {
+                        playNote(keyboardMap[e.key.toUpperCase()], 80);
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    if (keyboardMap[e.key.toUpperCase()]) {
+                        stopNote(keyboardMap[e.key.toUpperCase()]);
+                    }
+                });
+                
+                // 마우스 이벤트 방지 (드래그 방지)
+                document.addEventListener('selectstart', (e) => {
+                    if (e.target.classList.contains('key')) {
+                        e.preventDefault();
+                    }
+                });
+                
+                // 모든 노트 중지 함수 (패닉 기능)
+                function stopAllNotes() {
+                    Object.keys(activeSounds).forEach(note => {
+                        stopNote(parseInt(note));
+                    });
+                }
+                
+                // 패닉 버튼 추가 (ESC 키)
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        stopAllNotes();
+                    }
+                });
+                
+                // 브라우저 탭이 비활성화될 때 모든 노트 중지
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        stopAllNotes();
+                    }
+                });
+                
+                // 오디오 컨텍스트 재개 (브라우저 정책 대응)
+                function resumeAudioContext() {
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                }
+                
+                document.addEventListener('click', resumeAudioContext);
+                document.addEventListener('keydown', resumeAudioContext);
+                
+                
+                // 페이지 로드 완료 후 기본 설정
+                setTimeout(() => {
+                    soundfontStatus.textContent = 'SoundFont 로드 버튼을 클릭하세요';
+                    
+                    // WebAudioFontPlayer 라이브러리 로딩 확인
+                    if (typeof WebAudioFontPlayer === 'undefined') {
+                        console.error('WebAudioFontPlayer 라이브러리가 로드되지 않았습니다');
+                        soundfontStatus.textContent = 'SoundFont 라이브러리 로드 실패 - WebAudioFontPlayer.js 확인 필요';
+                        soundfontStatus.classList.add('error');
+                    } else {
+                        console.log('WebAudioFontPlayer 라이브러리가 성공적으로 로드되었습니다');
+                    }
+                }, 1000);
+                
+                console.log('🎹 멀티플레이어 피아노 초기화 완료');
+            }
+            
+            // 웹소켓 연결 시작
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>
